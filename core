@@ -1,0 +1,72 @@
+-- @darain 2024
+--[[Single-layer Perceptron class]]
+
+-- Get a consistent set of the same random numbers every time program is run (seed)
+local Rand = Random.new(1)
+
+local P = {}
+P.__index = P
+
+-- Sigmoid function to convert output to a range of 0 to 1
+function sigmoid(a: number)
+	return 1 / (1+math.exp(-a))
+end
+
+function P:getdata()
+	return self
+end
+
+-- Constructor
+function P.new(neurons: number, weights: {}, bias: number, learningrate: number)
+	local self = setmetatable({}, P);
+	
+	-- If no previous data for weights inputted create new
+	if not weights then weights = {} end;
+	
+	-- Create randomly numbered weights depending on how many neurons inputted
+	self.weights = {};
+	for i = 1,neurons do
+		-- Assign weight between -1 or 1 (new training model)
+		self.weights[i] = weights[i] or (Rand:NextNumber()*2)-1
+	end
+	
+	self.bias = bias or 0
+	self.learning_rate = learningrate or 1
+	
+	return self;
+end
+
+function P:feed(input)
+	if #self.weights ~= #input then
+		error(("Expected %i inputs got %i"):format(#self.weights, #input))
+		return;
+	end
+	
+	-- Calculate weighted sum
+	local sum=0;
+	for i, inputval in ipairs(input) do
+		sum += inputval*self.weights[i]
+	end
+	sum += self.bias
+	
+	-- Pass sum through sigmoid function to get activation value
+	return sigmoid(sum), sum
+end
+
+function P:train(input, expected)
+	local output,sum = self:feed(input)
+	local cost = math.pow(output-expected, 2)
+	
+	-- Derivative for gradient descent
+	local err = (output - expected) * output * (1 - output)
+	
+	-- Tweak all weight values and bias
+	for i, weight in ipairs(self.weights) do
+		self.weights[i] -= err*input[i]*self.learning_rate
+	end
+	self.bias -= err*self.learning_rate
+	
+	return cost
+end
+
+return P
