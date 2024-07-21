@@ -1,0 +1,94 @@
+--[[
+
+  - Basic use showing number detection where each pixel is given a binary value of 1 or 0 (white or black)
+  - Train model to understand what '1' looks like using generateTrainingModel1() func
+  - Draw your own '1' or other numbers to see how accurate the AI is depending on how many time you train it (default 300 as set in the for loop)
+
+]]
+
+local RPS = game:GetService('ReplicatedStorage')
+local P = require(RPS:WaitForChild('Perceptron_Class'))
+
+local ScreenGui = script.Parent:WaitForChild('ScreenGui')
+local Canvas = ScreenGui.Canvas
+
+local textLabel = ScreenGui.TextLabel
+
+local function getPixels()
+	return #Canvas:GetChildren()-1
+end
+
+
+local Perceptron = P.new(getPixels(), {})
+
+
+local function getBinary()
+	local input={};
+	for i, pixel in ipairs(Canvas:GetChildren()) do
+		if not pixel:IsA('ImageButton') then continue end;
+
+		input[i-1] = pixel.BackgroundColor3.R
+	end
+	
+	return input;
+end
+
+local function colourPixel(pixel)
+	if pixel.BackgroundColor3 == Color3.fromRGB(255,255,255) then
+		pixel.BackgroundColor3 = Color3.fromRGB(0,0,0);
+	else
+		pixel.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	end
+	
+	local input = getBinary()
+	local output = Perceptron:feed(input)
+	
+	textLabel.Text = tostring(math.floor(output*10))
+	
+	return;
+end
+
+for _, pixel in ipairs(Canvas:GetChildren()) do
+	if not pixel:IsA('ImageButton') then continue end;
+	
+	pixel.MouseButton1Click:Connect(function()
+		colourPixel(pixel);
+	end)
+end
+
+
+local function generateTrainingModel1()
+	local x,y = math.random(1,9), math.random(1,4)
+	
+	local v = (x)*y
+	local p = Canvas['Pixel' .. tostring(v)]
+	p.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	
+	for count = y+1,y+4 do
+		v += 9
+		local pk = Canvas['Pixel' .. tostring(v)]
+		
+		pk.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	end
+	
+	task.wait()
+	
+	Perceptron:train(getBinary(), 0.1)
+	
+	task.wait()
+	
+	for _, pixel in ipairs(Canvas:GetChildren()) do
+		if not pixel:IsA('ImageButton') then continue end
+		pixel.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	end
+end
+
+
+local start = tick()
+
+for x = 1,300 do
+	generateTrainingModel1()
+end
+
+print(tick()-start)
+print(Perceptron:getdata())
